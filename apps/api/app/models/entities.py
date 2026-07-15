@@ -1,4 +1,5 @@
 from datetime import date, datetime, timezone
+from urllib.parse import quote
 
 from sqlalchemy import Date, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -79,9 +80,24 @@ class SceneAsset(Base):
     source: Mapped[str | None] = mapped_column(String(120), nullable=True)
     status: Mapped[str] = mapped_column(String(40), default="planned", index=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    mime_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    file_size_bytes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    original_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     visual_prompt: Mapped["VisualPrompt"] = relationship(back_populates="assets")
+
+    @property
+    def media_url(self) -> str | None:
+        normalized_path = self.file_path.replace("\\", "/")
+        prefix = "content/assets/"
+        if not normalized_path.startswith(prefix):
+            return None
+        return f"/media/assets/{quote(normalized_path.removeprefix(prefix))}"
+
+    @property
+    def is_uploaded(self) -> bool:
+        return self.mime_type is not None
 
 
 class Video(Base):

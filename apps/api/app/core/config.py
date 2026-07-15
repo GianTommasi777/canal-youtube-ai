@@ -5,12 +5,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 def default_database_url() -> str:
-    config_path = Path(__file__).resolve()
-    repository_root = (
-        config_path.parents[4] if len(config_path.parents) > 4 else Path.cwd()
-    )
-    database_path = (repository_root / "data" / "canal_youtube_ai.db").as_posix()
+    database_path = (repository_root() / "data" / "canal_youtube_ai.db").as_posix()
     return f"sqlite:///{database_path}"
+
+
+def repository_root() -> Path:
+    config_path = Path(__file__).resolve()
+    return config_path.parents[4] if len(config_path.parents) > 4 else Path.cwd()
 
 
 class Settings(BaseSettings):
@@ -20,6 +21,8 @@ class Settings(BaseSettings):
     database_url: str = ""
     cors_origins: str = "http://localhost:3000"
     seed_demo_data: bool = True
+    assets_directory: str = ""
+    max_asset_size_mb: int = 100
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -30,6 +33,16 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def resolved_assets_directory(self) -> Path:
+        if self.assets_directory:
+            return Path(self.assets_directory).resolve()
+        return (repository_root() / "content" / "assets").resolve()
+
+    @property
+    def max_asset_size_bytes(self) -> int:
+        return self.max_asset_size_mb * 1024 * 1024
 
 
 @lru_cache

@@ -2,7 +2,7 @@
 
 Base de un sistema progresivo para gestionar un canal de YouTube automatizado con IA. El MVP organiza ideas, guiones, prompts visuales, vídeos producidos y métricas manuales sin publicar automáticamente ni conectar APIs externas.
 
-El dashboard incluye un Kanban editorial con cambio de estados, edición de ideas y guiones, gestión de prompts y assets por escena, registro de vídeos y captura manual de métricas.
+El dashboard incluye un Kanban editorial con cambio de estados, edición de ideas y guiones, gestión de prompts y assets por escena, registro de vídeos y captura manual de métricas. Los assets se pueden subir desde el navegador y previsualizar dentro de cada escena.
 
 ## Stack
 
@@ -124,6 +124,8 @@ La migración inicial detecta bases SQLite creadas por la versión anterior y co
 | `DATABASE_URL` | URL opcional de SQLAlchemy; vacía usa SQLite en `data/` |
 | `CORS_ORIGINS` | Orígenes permitidos separados por comas |
 | `SEED_DEMO_DATA` | Carga datos demo si la base está vacía |
+| `ASSETS_DIRECTORY` | Carpeta física de uploads; vacía usa `content/assets/` |
+| `MAX_ASSET_SIZE_MB` | Tamaño máximo permitido por archivo, por defecto `100` |
 
 ### Dashboard: `apps/dashboard/.env.local`
 
@@ -151,19 +153,18 @@ En PowerShell se usa `npm.cmd` para evitar bloqueos de `npm.ps1` causados por al
 ## Contenido local
 
 - `content/ideas`, `scripts` y `prompts`: exportaciones editoriales futuras.
-- `content/assets`: imágenes, voces y material fuente.
+- `content/assets`: imágenes, voces y material fuente subido desde el dashboard.
 - `content/renders`: vídeos generados antes de publicar.
 - `content/published`: copias o manifiestos de publicaciones.
 
-Los archivos pesados y la base SQLite están ignorados por Git.
+Los archivos pesados y la base SQLite están ignorados por Git. La API admite JPG, PNG, WebP, GIF, MP4, WebM, MOV, MP3, WAV, OGG y M4A, valida su contenido básico y los sirve localmente desde `/media/assets` para su previsualización. También se pueden registrar rutas existentes sin copiar el archivo.
 
 ## Próximas etapas
 
-1. Añadir subida y validación física de archivos locales.
-2. Incorporar autenticación local y perfiles de canal.
-3. Crear servicios de generación de voz, imagen y vídeo con proveedores intercambiables.
-4. Preparar composición y render mediante FFmpeg.
-5. Integrar YouTube Data API para publicación asistida.
-6. Integrar YouTube Analytics API y experimentos de rendimiento.
+1. Incorporar autenticación local y perfiles de canal.
+2. Crear servicios de generación de voz, imagen y vídeo con proveedores intercambiables.
+3. Preparar composición y render mediante FFmpeg.
+4. Integrar YouTube Data API para publicación asistida.
+5. Integrar YouTube Analytics API y experimentos de rendimiento.
 
 Consulta [Arquitectura](docs/ARCHITECTURE.md) y [Referencia API](docs/API.md) para ampliar el sistema.

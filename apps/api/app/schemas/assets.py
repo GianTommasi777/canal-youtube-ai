@@ -39,6 +39,11 @@ class SceneAssetUpdate(BaseModel):
 class SceneAssetRead(SceneAssetCreate):
     id: int
     visual_prompt_id: int
+    mime_type: str | None = None
+    file_size_bytes: int | None = None
+    original_filename: str | None = None
+    media_url: str | None = None
+    is_uploaded: bool = False
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

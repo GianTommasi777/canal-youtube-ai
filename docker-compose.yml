@@ -7,8 +7,11 @@ services:
       DATABASE_URL: sqlite:////data/canal_youtube_ai.db
       CORS_ORIGINS: http://localhost:${DASHBOARD_PORT:-3000}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      ASSETS_DIRECTORY: /content/assets
+      MAX_ASSET_SIZE_MB: 100
     volumes:
       - ./data:/data
+      - ./content:/content
       - ./apps/api/app:/app/app
     ports:
       - "${API_PORT:-8000}:8000"

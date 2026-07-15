@@ -28,6 +28,11 @@ export type SceneAsset = {
   source: string | null;
   status: AssetStatus;
   notes: string | null;
+  mime_type: string | null;
+  file_size_bytes: number | null;
+  original_filename: string | null;
+  media_url: string | null;
+  is_uploaded: boolean;
   created_at: string;
 };
 

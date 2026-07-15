@@ -1,4 +1,5 @@
 import os
+import shutil
 import tempfile
 from pathlib import Path
 
@@ -6,10 +7,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 test_database = Path(tempfile.gettempdir()) / "canal_youtube_ai_test.db"
+test_assets = Path(tempfile.gettempdir()) / "canal_youtube_ai_test_assets"
 test_database.unlink(missing_ok=True)
+shutil.rmtree(test_assets, ignore_errors=True)
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = f"sqlite:///{test_database.as_posix()}"
 os.environ["SEED_DEMO_DATA"] = "false"
+os.environ["ASSETS_DIRECTORY"] = str(test_assets)
 
 from app.core.database import engine  # noqa: E402
 from app.main import app  # noqa: E402
@@ -20,6 +24,7 @@ def cleanup_test_database():
     yield
     engine.dispose()
     test_database.unlink(missing_ok=True)
+    shutil.rmtree(test_assets, ignore_errors=True)
 
 
 def test_health():
@@ -112,6 +117,37 @@ def test_complete_editorial_flow():
         assert asset_update_response.status_code == 200
         assert asset_update_response.json()["status"] == "approved"
 
+        uploaded_bytes = b"\x89PNG\r\n\x1a\n" + (b"\x00" * 64)
+        upload_response = client.post(
+            f"/api/visual-prompts/{prompt_id}/assets/upload",
+            data={"name": "Imagen subida", "source": "integration-test"},
+            files={"file": ("scene.png", uploaded_bytes, "image/png")},
+        )
+        assert upload_response.status_code == 201
+        uploaded_asset = upload_response.json()
+        uploaded_asset_id = uploaded_asset["id"]
+        assert uploaded_asset["mime_type"] == "image/png"
+        assert uploaded_asset["file_size_bytes"] == len(uploaded_bytes)
+        assert uploaded_asset["original_filename"] == "scene.png"
+        assert uploaded_asset["is_uploaded"] is True
+        assert uploaded_asset["media_url"].startswith("/media/assets/scene-")
+
+        media_response = client.get(uploaded_asset["media_url"])
+        assert media_response.status_code == 200
+        assert media_response.content == uploaded_bytes
+
+        invalid_upload_response = client.post(
+            f"/api/visual-prompts/{prompt_id}/assets/upload",
+            files={"file": ("notes.txt", b"not media", "text/plain")},
+        )
+        assert invalid_upload_response.status_code == 415
+
+        uploaded_path_update_response = client.patch(
+            f"/api/assets/{uploaded_asset_id}",
+            json={"file_path": "content/assets/moved.png"},
+        )
+        assert uploaded_path_update_response.status_code == 422
+
         prompt_update_response = client.patch(
             f"/api/scripts/visual-prompts/{prompt_id}",
             json={"scene_description": "Escena actualizada"},
@@ -121,9 +157,15 @@ def test_complete_editorial_flow():
         detail_response = client.get(f"/api/ideas/{idea_id}")
         assert detail_response.status_code == 200
         assert len(detail_response.json()["script"]["visual_prompts"]) == 1
-        assert detail_response.json()["script"]["visual_prompts"][0]["assets"][0][
-            "status"
-        ] == "approved"
+        detail_assets = detail_response.json()["script"]["visual_prompts"][0][
+            "assets"
+        ]
+        assert any(asset["status"] == "approved" for asset in detail_assets)
+        assert any(asset["is_uploaded"] is True for asset in detail_assets)
+
+        delete_upload_response = client.delete(f"/api/assets/{uploaded_asset_id}")
+        assert delete_upload_response.status_code == 204
+        assert client.get(uploaded_asset["media_url"]).status_code == 404
 
         video_response = client.post(
             "/api/videos",
