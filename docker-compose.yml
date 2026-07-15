@@ -1,0 +1,32 @@
+services:
+  api:
+    build:
+      context: ./apps/api
+    environment:
+      APP_ENV: development
+      DATABASE_URL: sqlite:////data/canal_youtube_ai.db
+      CORS_ORIGINS: http://localhost:${DASHBOARD_PORT:-3000}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+    volumes:
+      - ./data:/data
+      - ./apps/api/app:/app/app
+    ports:
+      - "${API_PORT:-8000}:8000"
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  dashboard:
+    build:
+      context: ./apps/dashboard
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${API_PORT:-8000}/api
+      API_INTERNAL_URL: http://api:8000/api
+    volumes:
+      - ./apps/dashboard:/app
+      - dashboard_node_modules:/app/node_modules
+    ports:
+      - "${DASHBOARD_PORT:-3000}:3000"
+    depends_on:
+      - api
+
+volumes:
+  dashboard_node_modules:
